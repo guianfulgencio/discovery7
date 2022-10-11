@@ -1,0 +1,229 @@
+###############################################################################
+#################### Containerize Application Using Docker #################### 
+###############################################################################
+
+********************************************
+****************** Task 1 ****************** 
+********************************************
+** Step 2 **
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    out = (
+        f'Welcome to Cisco DevNet.<br>'
+    )
+    return out
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
+** Step 3 **
+cd app
+python main.py
+
+** Step 6 **
+FROM python:3.7
+
+COPY . /app
+WORKDIR /app
+
+RUN pip install -r requirements.txt
+EXPOSE 5000
+
+CMD ["python3", "main.py"]
+
+** Step 7 **
+docker build -t app .
+
+** Step 8 **
+docker run -it -p 5000:5000 app
+
+********************************************
+****************** Task 2 ****************** 
+********************************************
+** Step 2 **
+events {}
+http {
+
+  upstream myapp {
+    server 172.20.0.100:5000;
+    server 172.20.0.101:5000;
+  }
+
+  server {
+    listen 8080;
+    server_name localhost;
+
+    location / {
+      proxy_pass http://myapp;
+      proxy_set_header Host $host;
+    }
+  }
+
+}
+
+** Step 3 **
+FROM nginx
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]
+
+** Step 4 **
+cd ../lb
+docker build -t lb .
+
+** Step 5 **
+from flask import Flask
+import socket
+
+ip = socket.gethostbyname(socket.gethostname())
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    out = (
+        f'Welcome to Cisco DevNet.<br>'
+        f'IP address of the server is {ip}.<br><br>'
+    )
+    return out
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
+** Step 6 **
+cd ../app
+docker build -t app .
+
+** Step 7 **
+docker network create --subnet=172.20.0.0/24 --gateway=172.20.0.1 appnet
+
+
+** Step 8 **
+docker network inspect appnet
+
+** Step 9 **
+docker run --net appnet --ip 172.20.0.100 -it -d -p 5000:5000 app
+
+** Step 11 **
+docker run --net appnet --ip 172.20.0.10 -it -d -p 8080:8080 lb
+
+** Step 13 **
+docker kill _container_hash_id_
+docker kill _container_hash_id_
+
+********************************************
+****************** Task 3 ****************** 
+********************************************
+** Step 2 **
+cd ..
+docker run --env MYSQL_ALLOW_EMPTY_PASSWORD=yes --net appnet --ip 172.20.0.200 -v ~/working_directory/db:/var/lib/mysql -it mysql:5.7
+
+** Step 4 **
+docker ps
+docker exec -it _container_id_ bash
+
+
+** Step 5 **
+CREATE DATABASE inventory;
+USE inventory;
+CREATE TABLE routers (hostname VARCHAR(255), ip VARCHAR(255));
+INSERT INTO routers VALUES ('r1.example.com', '192.168.1.1');
+INSERT INTO routers VALUES ('r2.example.com', '192.168.1.2');
+INSERT INTO routers VALUES ('r3.example.com', '192.168.1.3');
+
+** Step 5 **
+mysql
+CREATE DATABASE inventory;
+USE inventory;
+CREATE TABLE routers (hostname VARCHAR(255), ip VARCHAR(255));
+INSERT INTO routers VALUES ('r1.example.com', '192.168.1.1');
+INSERT INTO routers VALUES ('r2.example.com', '192.168.1.2');
+INSERT INTO routers VALUES ('r3.example.com', '192.168.1.3');
+
+** Step 6 **
+SELECT * FROM inventory.routers;
+
+
+** Step 7 **
+exit
+exit
+exit
+docker stop _container_id_
+
+** Step 8 **
+docker run --env MYSQL_ALLOW_EMPTY_PASSWORD=yes --net appnet --ip 172.20.0.200 -v ~/working_directory/db:/var/lib/mysql -it mysql:5.7
+
+
+** Step 9 **
+docker exec -it _container_id_ bash
+mysql
+SELECT * FROM inventory.routers;
+exit
+exit
+exit
+
+** Step 10 **
+from flask import Flask
+import socket
+from MySQLdb import connect
+
+ip = socket.gethostbyname(socket.gethostname())
+
+def get_routers():
+    db = connect(host='172.20.0.200', db='inventory')
+    c = db.cursor()
+    c.execute("SELECT * FROM routers")
+    return c.fetchall()
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    out = (
+        f'Welcome to Cisco DevNet.<br>'
+        f'IP address of the server is {ip}.<br><br>'
+    )
+    out += 'List of routers in the inventory:<br>'
+    for r in get_routers():
+        out += f'-> Hostname: {r[0]}; IP: {r[1]}<br>'
+    return out
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+
+** Step 11 **
+Flask==1.1.1
+mysqlclient==1.4.5
+
+** Step 12 **
+docker build -t app .
+
+** Step 13 **
+docker run --net appnet --ip 172.20.0.100 -it -p 5000:5000 app
+
+** Step 15 **
+docker ps
+docker stop _container_id_
+
+********************************************
+****************** Task 4 ****************** 
+********************************************
+** Step 1 **
+docker run --net appnet --ip 172.20.0.10 -p 8080:8080 -itd lb
+
+** Step 2 **
+docker run --net appnet --ip 172.20.0.100 -itd app
+docker run --net appnet --ip 172.20.0.101 -itd app
+
+** Step 3 **
+docker run --env MYSQL_ALLOW_EMPTY_PASSWORD=yes --net appnet --ip 172.20.0.200 -v ~/working_directory/db:/var/lib/mysql -itd mysql:5.7
+
+** Step 4 **
+docker ps
